@@ -2,7 +2,9 @@
 title: "Car Fatality Analysis on Interstates in United States"
 author: "Karmanya Pathak"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 <style>
@@ -52,24 +54,23 @@ Link: <https://www.nhtsa.gov/node/97996/221>
 
 #2016 Data
 
-
-persons2016 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2016/PERSON.CSV")
-accident2016 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2016/ACCIDENT.CSV")
-vehicle2016 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2016/VEHICLE.CSV")
+persons2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/PERSON.CSV")
+accident2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/ACCIDENT.CSV")
+vehicle2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/VEHICLE.CSV")
 
 
 #2017 Data
 
-persons2017 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2017/PERSON.CSV")
-accident2017 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2017/ACCIDENT.CSV")
-vehicle2017 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2017/VEHICLE.CSV")
+persons2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/PERSON.CSV")
+accident2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/ACCIDENT.CSV")
+vehicle2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/VEHICLE.CSV")
 
 
 #2018 Data
 
-persons2018 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2018/PERSON.CSV")
-accident2018 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2018/ACCIDENT.CSV")
-vehicle2018 = read.csv("D:/Github/Crash Fatality Analysis on Interstates in United States/CRS2018/VEHICLE.CSV")
+persons2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/PERSON.csv")
+accident2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/ACCIDENT.csv")
+vehicle2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/VEHICLE.csv")
 
 ```
 
