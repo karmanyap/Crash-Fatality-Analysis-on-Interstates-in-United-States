@@ -1,0 +1,357 @@
+
+
+## Car Fatality Analysis on Interstates in United States
+
+# Loading the libraries
+
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(Amelia)
+library(caret)
+library(pscl)
+library(ROCR)
+library(reshape2)
+
+library(naniar)
+
+## Loading Data
+
+# Our project aims to analyze all the fatal crashes in US from 2016 -2018. The data is provided by FARS (Fatality Analysis Reporting System) and has extensive data regarding each fatal accident. The project aims to classify these fatal accidents to bring more light on potential causes of accidents that cannot be addressed by current safety standards
+
+# Data source:  Accidental crash data from NHTSA(National Highway Traffic Safety Administration)
+# Link: <https://www.nhtsa.gov/node/97996/221>
+
+
+#2016 Data
+
+persons2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/PERSON.CSV")
+accident2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/ACCIDENT.CSV")
+vehicle2016 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2016/VEHICLE.CSV")
+
+
+#2017 Data
+
+persons2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/PERSON.CSV")
+accident2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/ACCIDENT.CSV")
+vehicle2017 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2017/VEHICLE.CSV")
+
+
+#2018 Data
+
+persons2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/PERSON.csv")
+accident2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/ACCIDENT.csv")
+vehicle2018 = read.csv("https://raw.githubusercontent.com/karmanyap/Crash-Fatality-Analysis-on-Interstates-in-United-States/master/CRS2018/VEHICLE.csv")
+
+
+## Data Cleanup:
+
+# Per type 1 indicates the observation is driver, veh no 1 indicates that the car which caused the crash, and the rest of the filters on variables is removing the unkown/outlier data in the data set
+
+
+# 2016
+
+acc2016CuriousFields = accident2016 %>%
+  inner_join(vehicle2016, by="CASENUM", suffix=c("_acc","_veh")) %>% 
+  inner_join(persons2016, by=c("CASENUM"="CASENUM", "VEH_NO"="VEH_NO"), suffix=c("_acc","_per")) %>%
+  filter(PER_TYP == 1, VEH_NO == 1, MAX_SEV != 9, MAX_SEV!=1,MAX_SEV!=5, AGE!=998, AGE!=999, VSPD_LIM != 98, VSPD_LIM != 99, TRAV_SP <900, HOUR!= 99,  MAN_COLL<90, LGT_COND < 5, SEX<3, HIT_RUN <= 1, HARM_EV!= 99, VSURCOND<=11) %>%
+  select(
+    MAX_SEV,
+    DAY_WEEK, 
+    HOUR, 
+    HARM_EV, MAN_COLL, REL_ROAD, 
+    LGT_COND, 
+    ALCOHOL, WEIGHT, 
+    VSPD_LIM, DR_SF1, VSURCOND, 
+    AGE, 
+    SEX, 
+    TRAV_SP, 
+    HIT_RUN, 
+    VSURCOND
+  ) %>%
+  mutate(fatalornonfatal = (MAX_SEV>0)) %>%
+  mutate(motorVehicleOrNot = HARM_EV %in% c(12, 54, 55)) %>%
+  mutate(dryOrNot = VSURCOND %in% c(0,1))
+
+
+
+# 2017
+
+acc2017CuriousFields = accident2017 %>%
+  inner_join(vehicle2017, by="CASENUM", suffix=c("_acc","_veh")) %>% 
+  inner_join(persons2017, by=c("CASENUM"="CASENUM", "VEH_NO"="VEH_NO"), suffix=c("_acc","_per")) %>%
+  filter(PER_TYP == 1, VEH_NO == 1, MAX_SEV != 9, MAX_SEV!=1, MAX_SEV!=5, AGE!=998, AGE!=999, VSPD_LIM != 98, VSPD_LIM != 99, TRAV_SP <900, HOUR!=99,  MAN_COLL<90, LGT_COND < 5, SEX<3, HIT_RUN <= 1, HARM_EV!= 99, VSURCOND<=11) %>%
+  select(
+    MAX_SEV,
+    DAY_WEEK, 
+    HOUR, 
+    HARM_EV, MAN_COLL, REL_ROAD, 
+    LGT_COND, 
+    ALCOHOL, WEIGHT, 
+    VSPD_LIM, DR_SF1, VSURCOND, 
+    AGE, 
+    SEX, 
+    TRAV_SP, 
+    HIT_RUN, 
+    VSURCOND
+  ) %>%
+  mutate(fatalornonfatal = (MAX_SEV>0)) %>%
+  mutate(motorVehicleOrNot = HARM_EV %in% c(12, 54, 55)) %>%
+  mutate(dryOrNot = VSURCOND %in% c(0,1))
+
+
+
+#2018
+
+acc2018CuriousFields = accident2018 %>%
+  inner_join(vehicle2018, by="CASENUM", suffix=c("_acc","_veh")) %>% 
+  inner_join(persons2018, by=c("CASENUM"="CASENUM", "VEH_NO"="VEH_NO"), suffix=c("_acc","_per")) %>%
+  filter(PER_TYP == 1, VEH_NO == 1, MAX_SEV != 9, MAX_SEV!=1,MAX_SEV!=5, AGE!=998, AGE!=999, VSPD_LIM != 98, VSPD_LIM != 99, TRAV_SP <900, HOUR!=99, MAN_COLL<90, LGT_COND < 5, SEX<3, HIT_RUN <= 1, HARM_EV!= 99, VSURCOND<=11) %>%
+  select(
+    MAX_SEV,
+    DAY_WEEK, 
+    HOUR, 
+    HARM_EV, MAN_COLL, REL_ROAD, 
+    LGT_COND, 
+    ALCOHOL, WEIGHT, 
+    VSPD_LIM, DR_SF1, VSURCOND, 
+    AGE, 
+    SEX, 
+    TRAV_SP, 
+    HIT_RUN, 
+    VSURCOND
+  ) %>%
+  mutate(fatalornonfatal = (MAX_SEV>0)) %>%
+  mutate(motorVehicleOrNot = HARM_EV %in% c(12, 54, 55)) %>%
+  mutate(dryOrNot = VSURCOND %in% c(0,1))
+
+
+#Get all the year's data into allYearAcc
+
+
+allYearAcc = rbind(acc2016CuriousFields, acc2017CuriousFields, acc2018CuriousFields)
+allYearAcc$dryOrNot = as.numeric(allYearAcc$dryOrNot)
+
+
+
+## Splitting all the data into Train and Test data 
+
+# We split the primary data into 75% training data and 25% test data 
+# where we would use the training data as a reference to train our model 
+# to predict the severity of fatal crashes and compare it with the real 
+# test data for accuracy of the model. 
+# All things remaining same, a more accurate model can be used to predict 
+# the chances and severity of such events happening in the future.
+
+smp_size <- floor(0.75 * nrow(allYearAcc))
+
+set.seed(123)
+train_ind <- sample(seq_len(nrow(allYearAcc)), size = smp_size)
+#train_ind
+train <- allYearAcc[train_ind, ]
+test <- allYearAcc[-train_ind, ]
+
+
+
+## Exploratory Data Analysis
+
+# Our initial exploratory analysis aims to understand the structure of the data and the summary.
+
+#### Checking for Missing data
+
+# We can see that out of 19 variable we have 3 logical, 1 integer and the rest numerical. 
+
+# From the chart you can see that there were 0 missing values.
+
+str(allYearAcc)
+
+
+missmap(train, col=c("blue", "red"), legend=FALSE)
+
+
+
+#Furthermore, we explored the relationship between the fatalities of drivers with different factors recorded in the crash report.
+
+# From the figure titled 'Fatality by Travel Speed', 
+# it is evident from the boxplot that the mean travel speed of the vehicle is much higher in crashes that resulted in fatality. 
+
+# In figure 'Fatality by Days of the Week', we have tried to see how fatalities has ranged in terms of day of the week. 
+# The crashes involving fatalities are spread over the entire weekdays whereas non-fatal crashes are more concentrated between Tuesday to Friday.
+
+# There is no difference in the fatality of the traveler based on Age.
+
+# The travel speed for fatal accidents span a wider range as compared to non-fatal accidents.
+
+# After comparing the road's speed limit with the traveling speed of the vehicle involved in an accident, 
+# we can see that there were greater fatal accidents had vehicles traveling a lot higher than the posted speed limits for the road as compared to non-fatal accidents.
+
+# The last figure explores the spread of all crashes based on ages. We can see the major chunk of crashes being attributed to drivers between the age of 16 - 40.
+
+
+allYearAcc %>% 
+  ggplot(aes(y=TRAV_SP, x=fatalornonfatal)) +
+  geom_boxplot() +
+  labs(x="Fatality", y="Travel Speed", title="Fatality by Travel Speed")
+
+summary(train$TRAV_SP[train$fatalornonfatal == FALSE])
+
+summary(train$TRAV_SP[train$fatalornonfatal == TRUE])
+
+
+allYearAcc %>% 
+  ggplot(aes(y=HOUR, x=fatalornonfatal)) +
+  geom_boxplot() +
+  labs(x="Fatality", y="Hour", title="Fatality by Hour")
+
+allYearAcc %>% 
+  ggplot(aes(y= DAY_WEEK, x=fatalornonfatal)) +
+  geom_boxplot() +
+  labs(x="Fatality", y="Day of the Week", title="Fatality by Days of the Week")
+
+allYearAcc %>% 
+  ggplot(aes(y=AGE, x=fatalornonfatal)) +
+  geom_boxplot() +
+  labs(x="Fatality", y="Age", title="Fatality by Age")
+
+allYearAcc %>% 
+  ggplot(aes(y=fatalornonfatal, x=TRAV_SP  )) + 
+  geom_point() +
+  labs(x="Travel Speed", y="Fatality", title="Travel Speed for types of Fatality")
+
+allYearAcc %>% 
+  ggplot(aes(x=as.factor(VSPD_LIM), y=TRAV_SP)) +
+  facet_wrap(~fatalornonfatal) +
+  geom_line() + 
+  labs(x="Speed Limit", y="Travel Speed", title="Travel Speed vs speed limit") +
+  scale_y_continuous(breaks = seq(0, 200, by = 10))
+
+allYearAcc %>% 
+  ggplot(aes(x=as.factor(VSPD_LIM), y=TRAV_SP)) +
+  facet_wrap(~fatalornonfatal) +
+  geom_point() + 
+  labs(x="Speed Limit", y="Travel Speed", title="Travel Speed vs speed limit") +
+  scale_y_continuous(breaks = seq(0, 200, by = 10))
+
+hist(allYearAcc$AGE, main = "Ages of Drivers involved in the crash", xlab = "Age", ylab = "Frequency")
+
+
+## Inference:
+
+# Our research involves understanding the factors affecting and leading to fatal and non-fatal crashes. 
+# Amongst all the factors in our dataset, we focused on analyzing the effects of the following factors: 
+# Travel Speed (TRAV_SP), Alcohol Involved in Crash(ALCOHOL), Speed Limit (VSPD_LIM), Roadway Surface Condition (dryOrNot), 
+# collision with moving vehicle(motorVehicleOrNot), Light Condition (LGT_COND), Sex (SEX), Age (AGE). 
+# Deep diving into analyzing the Travel Speed and the Speed limit variables, we can observe that for roads with a speed limit of 55 mph, 
+# fatal crashes had a mean speed of 47 mph (median value of 55 mph) with a maximum speed of 130 mph, 
+# whereas non-fatal crashes had a lower mean speed of over 37 mph (lower median speed of 45 mph) and a maximum speed of 99 mph. 
+# This indicates that higher traveling speeds for a road's speed limit have a significant impact on vehicle crashes leading to fatality.
+
+allYearAcc %>% 
+  ggplot(aes(x=as.factor(VSPD_LIM), y=TRAV_SP)) +
+  facet_wrap(~fatalornonfatal) +
+  geom_boxplot() + 
+  labs(x="Speed Limit", y="Travel Speed", title="Travel Speed vs Speed Limit") +
+  scale_y_continuous(breaks = seq(0, 200, by = 10))
+
+
+# Null Hypothesis: 
+# There's no impact on fatality of the driver based on accident attributes such as 
+#light condition, alcohol, road condition, Speed limit, hour of accident , day of week, sex of driver, age, collision vehicle type.
+
+# Alternate Hypothesis: There is a significant impact of accident attributes on fatality of driver.
+
+
+## Model fit:
+
+model1 = glm( fatalornonfatal ~  TRAV_SP+ALCOHOL+VSPD_LIM+dryOrNot+motorVehicleOrNot+LGT_COND+SEX+AGE, data = train, family = binomial)
+
+summary(model1)
+
+
+model2 = glm( fatalornonfatal ~  TRAV_SP+VSPD_LIM+dryOrNot+motorVehicleOrNot+LGT_COND+AGE, data = train, family = binomial)
+
+summary(model2)
+
+
+# Model1. In this model we run regression model on Travel speed, alcohol, speed limit, road condition, collision with a moving vehicle, light condition, sex and age.
+# Fatality ~ Travel speed+alcohol+ speed limit+road condition+collision with a moving vehicle+light condition+sex+age
+# In this model we found the Alcohol and Sex is not a significant factor contributing to the fatality of the driver.(See code for actual results)
+
+# Model 2:
+# In this model we drop alcohol and sex and run the model again.
+# Fatality ~ Travel speed+speedlimit+road condition+collision with a moving vehicle+light condition+age
+
+
+
+## Testing model, CI, exponential coefficients:
+
+# We use Model2 for our prediction.
+# Fatality = -0.763 + 0.019(TRAV_SP) -0.099(VSPD_LIM) +0.390(dryornot) - 0.844(motorVehicleornot) + 0.07(LGT_COND) + (0.004)AGE
+
+
+anova(model2, test= "Chisq")
+anova(model1, test="Chisq")
+
+summary(model2) #display results
+par(mfrow = c(2,2))
+plot(model2)
+
+#test$fatalornonfatal
+
+
+confint(model2) # 95% CI for the coefficients
+exp(coef(model2)) # exponentiated coefficients
+exp(confint(model2)) # 95% CI for exponentiated coefficients
+
+
+## Prediction
+
+# We applied the logistic regression model to the training dataset and tested it against our test dataset. 
+# The accuracy of the dataset came to approximately 66%. We further plotted a ROC curve to understand the predictability of the model. 
+# We also found the area under the ROC curve which came out to 0.68. An AUC of 1 is ideal and the model should strive to be closer to it.
+
+test$probFatal <- predict(model2,newdata= test,type='response')
+head(test)
+
+fit <- ifelse(test$probFatal > 0.5,1,0)
+
+
+misClasificError <- mean(fit != test$fatalornonfatal)
+print(paste('Accuracy',1-misClasificError))
+
+
+pr <- prediction(test$probFatal, test$fatalornonfatal)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+
+
+plot(prf)
+
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+
+
+## Conclusion:
+
+# In conclusion based on the Anova test, the p-vales of all the factors in the model are less than the significant level of 5%, 
+# we reject the null Hypothesis H0, and accept the alternate hypothesis HA that the factors based on model 2 significantly impact 
+# the fatality of the driver involved in the crash.
+# We chose logistic regression to predict the fatality in a crash based on various factors. 
+# The predictability came to approximately 66%. This is not a very high accuracy rate but still significant. 
+# In cases of crash, it is preferable to have more false positives than false negatives. 
+# More factors or different modeling techniques are required to increase the accuracy of prediction. 
+# One of the surprising results of this analysis was that alcohol did not have any significant impact on the fatality of the crash. 
+# Although, the number of cases with alcohol were comparatively much lower.
+
+
+## References
+
+# 1.	Preusser, D. F., Williams, A. F., & Ulmer, R. G. (2000, January 27). Analysis of fatal motorcycle crashes: crash typing. 
+# Retrieved from <https://www.sciencedirect.com/science/article/abs/pii/0001457595000275>
+  
+# 2.	Yasmin, S., Eluru, N., & Pinjari, A. R. (2015, November). 
+# Pooling data from fatality analysis reporting system (FARS) and generalized estimates system (GES) to explore the continuum of injury severity spectrum. 
+# Retrieved from <https://www.ncbi.nlm.nih.gov/pubmed/26342892>
+
+
